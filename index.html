@@ -236,7 +236,6 @@
 <body class="bg-gray-100">
 
 <div class="relative h-screen w-screen flex">
-    <!-- Sidebar -->
     <div id="sidebar" class="absolute md:relative w-full max-w-sm md:w-1/3 lg:w-1/4 z-30 h-full flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
         <div class="rounded-t-lg sidebar-header flex-shrink-0">
             <h1 class="text-2xl font-bold" data-i18n="appTitle">Israel Real-Time Alerts</h1>
@@ -250,8 +249,7 @@
         <div class="border-b sidebar-section flex-shrink-0">
             <h3 class="font-semibold text-gray-700 dark:text-gray-200" data-i18n="threatLegendTitle">Threat Legend</h3>
             <div id="threat-legend" class="mt-2 space-y-1 text-sm">
-                <!-- Legend items will be injected here -->
-            </div>
+                </div>
         </div>
 
         <div class="border-b sidebar-section flex-shrink-0">
@@ -277,13 +275,11 @@
         </div>
     </div>
 
-    <!-- Main Content (Map) -->
     <div class="flex-grow h-full">
         <div id="map" class="h-full z-10"></div>
     </div>
 </div>
 
-<!-- Mobile UI Elements -->
 <button id="menu-button" class="md:hidden absolute top-4 right-4 z-40 bg-white p-2 rounded-full shadow-lg flex items-center justify-center">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
@@ -292,7 +288,6 @@
 <div id="map-overlay" class="hidden md:hidden absolute inset-0 bg-black bg-opacity-50 z-20 transition-opacity duration-300"></div>
 
 
-<!-- Settings Modal -->
 <div id="settings-modal" class="modal">
     <div class="modal-content bg-white">
         <div class="flex-shrink-0">
@@ -319,8 +314,7 @@
                     <div id="area-dropdown" class="hidden absolute w-full bg-white border mt-1 rounded-md shadow-lg max-h-60 z-10 flex flex-col dark:bg-gray-800 dark:border-gray-600">
                         <input type="text" id="area-search" placeholder="Search areas..." class="sticky top-0 w-full p-2 border-b dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200" data-i18n-placeholder="searchAreasPlaceholder">
                         <div id="area-list-dropdown" class="p-2 overflow-y-auto">
-                            <!-- Checkboxes will be inserted here -->
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
@@ -328,8 +322,7 @@
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-200" data-i18n="alertSoundsTitle">Alert Sounds</h3>
                 <div id="sound-settings-container" class="space-y-4 text-gray-800">
-                    <!-- Sound settings will be injected here -->
-                </div>
+                    </div>
             </div>
             
             <div>
@@ -353,6 +346,7 @@
 
 <script>
     // --- INITIALIZATION ---
+    console.log("Script starting..."); // Added for debugging
     let currentMapLayer = null;
     const lightMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     const darkMapUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
@@ -559,6 +553,7 @@
                 if (option.value === 'sound1') option.textContent = translations[lang].alarm1;
                 if (option.value === 'sound2') option.textContent = translations[lang].alarm2;
                 if (option.value === 'sound3') option.textContent = translations[lang].alarm3;
+                // If custom option already exists, ensure its text is updated
                 if (option.value === 'custom') option.textContent = translations[lang].custom;
             });
         });
@@ -630,6 +625,7 @@
     const themeToggle = document.getElementById('theme-toggle');
 
     function setTheme(theme, updateToggle = false) {
+        console.log("Setting theme to:", theme); // Debugging log
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
             if(updateToggle) themeToggle.checked = true;
@@ -725,9 +721,9 @@
                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 8a2 2 0 012-2h0a2 2 0 012 2v4a2 2 0 01-2 2h0a2 2 0 01-2-2V8z" clip-rule="evenodd" />
                         </svg>
                     </button>
-                    <label class="cursor-pointer text-sm px-2 py-1 rounded-md transition-colors upload-button" data-i18n="uploadButton">
+                    <label class="cursor-pointer text-sm px-2 py-1 rounded-md transition-colors upload-button" for="upload-${threat}-sound">
                         Upload
-                        <input type="file" class="hidden custom-sound-upload" accept="audio/*" data-threat="${threat}">
+                        <input type="file" id="upload-${threat}-sound" class="hidden custom-sound-upload" accept="audio/*" data-threat="${threat}">
                     </label>
                 </div>
             `;
@@ -770,31 +766,71 @@
 
         container.addEventListener('change', (e) => {
             if (e.target.classList.contains('custom-sound-upload')) {
+                console.log("Upload button clicked and file selected.");
                 const file = e.target.files[0];
                 const threat = e.target.dataset.threat;
+
                 if (file && file.type.startsWith('audio/')) {
+                    console.log(`Attempting to read file: ${file.name}, type: ${file.type}`);
                     const reader = new FileReader();
                     reader.onload = (event) => {
-                        customSounds[threat] = event.target.result;
-                        const select = document.getElementById(`${threat}-sound`);
-                        if (!select.querySelector('option[value="custom"]')) {
-                            const customOption = new Option(translations[currentLanguage].custom, 'custom');
-                            select.add(customOption);
+                        console.log("FileReader onload event fired. Result length:", event.target.result.length);
+                        try {
+                            customSounds[threat] = event.target.result; // Store the Base64 data
+                            console.log(`Custom sound for ${threat} stored. Value starts with: ${customSounds[threat].substring(0, 30)}...`);
+                            
+                            const select = document.getElementById(`${threat}-sound`);
+                            // Add 'custom' option if it doesn't exist
+                            if (!Array.from(select.options).some(option => option.value === 'custom')) {
+                                const customOption = new Option(translations[currentLanguage].custom, 'custom');
+                                select.add(customOption);
+                                console.log("Added 'custom' option to dropdown.");
+                            }
+                            select.value = 'custom'; // Select the 'custom' option
+                            console.log(`Dropdown for ${threat} set to 'custom'.`);
+
+                            // Show success modal
+                            const modalDiv = document.createElement('div');
+                            modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
+                            modalDiv.innerHTML = `
+                                <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                                    <p class="text-lg font-semibold mb-4">${translations[currentLanguage].soundUploadedSuccess}</p>
+                                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                                </div>
+                            `;
+                            document.body.appendChild(modalDiv);
+                            console.log("Success modal displayed.");
+                        } catch (innerError) {
+                            console.error("Error processing loaded file (inner try-catch):", innerError);
+                            const modalDiv = document.createElement('div');
+                            modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
+                            modalDiv.innerHTML = `
+                                <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                                    <p class="text-lg font-semibold mb-4">An error occurred after loading the file. Please try again.</p>
+                                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                                </div>
+                            `;
+                            document.body.appendChild(modalDiv);
+                            e.target.value = ''; // Clear the file input
                         }
-                        select.value = 'custom';
-                        // Inform the user that the sound has been uploaded and will be trimmed
+                    };
+                    reader.onerror = (error) => {
+                        console.error("FileReader error:", error);
                         const modalDiv = document.createElement('div');
                         modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
                         modalDiv.innerHTML = `
                             <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-                                <p class="text-lg font-semibold mb-4">${translations[currentLanguage].soundUploadedSuccess}</p>
+                                <p class="text-lg font-semibold mb-4">${translations[currentLanguage].validAudioFile}</p>
                                 <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
                             </div>
                         `;
                         document.body.appendChild(modalDiv);
+                        e.target.value = ''; // Clear the file input
+                        console.log("Error modal displayed.");
                     };
-                    reader.readAsDataURL(file);
+                    reader.readAsDataURL(file); // Start reading the file as Base64
                 } else {
+                    console.log("Invalid file type selected.");
                     const modalDiv = document.createElement('div');
                     modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
                     modalDiv.innerHTML = `
@@ -939,8 +975,7 @@
                 <input type="checkbox" class="history-item-checkbox mr-3 flex-shrink-0" data-index="${index}">
                 <div class="flex-grow">
                     <p class="font-semibold">${alertData.city}</p>
-                    <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${threatLabels[threatType]}</p> <!-- Use translated threat label -->
-                    <p class="text-xs text-gray-500 dark:text-gray-400">${alertData.time.toLocaleString(currentLanguage)}</p>
+                    <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${threatLabels[threatType]}</p> <p class="text-xs text-gray-500 dark:text-gray-400">${alertData.time.toLocaleString(currentLanguage)}</p>
                 </div>
             `;
             alertList.appendChild(alertElement);
@@ -1096,10 +1131,9 @@
             languageSelect.value = currentLanguage;
         }
         applyTranslations(); // Apply translations on initial load
+        populateAreaSelection(); // Ensure this runs after translations for proper summary
+        populateSoundSettings(); // Ensure this runs after translations for proper labels
     });
-
-    populateAreaSelection();
-    populateSoundSettings(); // This now relies on translated threatLabels
     
     // Set initial theme
     const preferredTheme = localStorage.getItem('theme') || 'light';
