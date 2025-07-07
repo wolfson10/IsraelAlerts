@@ -131,38 +131,100 @@
         .dark .upload-button:hover {
             background-color: #172554; /* blue-950 */
         }
+
+        /* New: Sidebar specific styles */
+        #sidebar {
+            background-color: #fbfdff; /* Very light blue/white for light mode */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            border-right: 1px solid #e5e7eb; /* subtle border */
+        }
+        .dark #sidebar {
+            background-color: #1a202c; /* Dark blue-gray for dark mode */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); /* darker shadow */
+            border-right: 1px solid #374151; /* darker subtle border */
+        }
+
+        .sidebar-header {
+            background-image: linear-gradient(to right, #60a5fa, #3b82f6); /* blue-400 to blue-500 */
+            color: white;
+            padding: 1.5rem; /* More padding */
+            border-bottom: none; /* Remove default border */
+        }
+        .dark .sidebar-header {
+            background-image: linear-gradient(to right, #1e3a8a, #1d4ed8); /* blue-900 to blue-800 */
+        }
+
+        .sidebar-section {
+            border-color: #e5e7eb; /* gray-200 */
+            padding: 1rem;
+        }
+        .dark .sidebar-section {
+            border-color: #374151; /* gray-700 */
+        }
+
+        .sidebar-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            border-radius: 0.5rem; /* rounded-lg */
+            font-weight: 600; /* semi-bold */
+        }
+        .sidebar-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+        }
+        .dark .sidebar-button {
+            box-shadow: 0 4px 6px -1px rgba(255, 255, 255, 0.05), 0 2px 4px -1px rgba(255, 255, 255, 0.03);
+        }
+        .dark .sidebar-button:hover {
+            box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.1), 0 4px 6px -2px rgba(255, 255, 255, 0.05);
+        }
+
+        .alert-list-item {
+            background-color: #f3f4f6; /* gray-100 */
+            border-radius: 0.5rem; /* rounded-md */
+            transition: background-color 0.2s ease-in-out;
+        }
+        .alert-list-item:hover {
+            background-color: #e5e7eb; /* gray-200 */
+        }
+        .dark .alert-list-item {
+            background-color: #374151; /* gray-700 */
+        }
+        .dark .alert-list-item:hover {
+            background-color: #4b5563; /* gray-600 */
+        }
     </style>
 </head>
 <body class="bg-gray-100">
 
 <div class="relative h-screen w-screen flex">
     <!-- Sidebar -->
-    <div id="sidebar" class="absolute md:relative w-full max-w-sm md:w-1/3 lg:w-1/4 bg-white shadow-lg z-30 h-full flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
-        <div class="p-4 border-b flex-shrink-0">
-            <h1 class="text-2xl font-bold text-gray-800">Israel Real-Time Alerts</h1>
-            <p class="text-sm text-gray-500">Live threat monitoring</p>
+    <div id="sidebar" class="absolute md:relative w-full max-w-sm md:w-1/3 lg:w-1/4 z-30 h-full flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div class="rounded-t-lg sidebar-header flex-shrink-0">
+            <h1 class="text-2xl font-bold">Israel Real-Time Alerts</h1>
+            <p class="text-sm opacity-90">Live threat monitoring</p>
         </div>
 
-        <div class="p-4 border-b flex-shrink-0">
-            <button id="settings-button" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Settings</button>
+        <div class="border-b sidebar-section flex-shrink-0">
+            <button id="settings-button" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 sidebar-button">Settings</button>
         </div>
         
-        <div class="p-4 border-b flex-shrink-0">
-            <h3 class="font-semibold text-gray-700">Threat Legend</h3>
+        <div class="border-b sidebar-section flex-shrink-0">
+            <h3 class="font-semibold text-gray-700 dark:text-gray-200">Threat Legend</h3>
             <div id="threat-legend" class="mt-2 space-y-1 text-sm">
                 <!-- Legend items will be injected here -->
             </div>
         </div>
 
-        <div class="p-4 border-b flex-shrink-0">
-            <button id="test-alert-button" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Test Alert</button>
+        <div class="border-b sidebar-section flex-shrink-0">
+            <button id="test-alert-button" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 sidebar-button">Test Alert</button>
         </div>
 
-        <div class="p-4 border-b flex-shrink-0">
-            <h4 class="font-semibold mb-2 text-gray-700">List Management</h4>
+        <div class="border-b sidebar-section flex-shrink-0">
+            <h4 class="font-semibold mb-2 text-gray-700 dark:text-gray-200">List Management</h4>
             <div class="flex space-x-2 mt-2">
-                <button id="delete-selected-alerts" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-1 px-2 rounded-lg text-sm">Delete Selected</button>
-                <button id="clear-all-alerts" class="w-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded-lg text-sm">Clear All</button>
+                <button id="delete-selected-alerts" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white py-1 px-2 text-sm sidebar-button">Delete Selected</button>
+                <button id="clear-all-alerts" class="w-1/2 bg-red-500 hover:bg-red-600 text-white py-1 px-2 text-sm sidebar-button">Clear All</button>
             </div>
         </div>
 
@@ -172,7 +234,7 @@
             </div>
         </div>
 
-        <div class="p-4 border-t text-xs text-gray-400 flex-shrink-0">
+        <div class="border-t sidebar-section text-xs text-gray-400 flex-shrink-0">
             Data sourced from the Home Front Command. This is not an official government service.
         </div>
     </div>
@@ -197,18 +259,18 @@
     <div class="modal-content bg-white">
         <div class="flex-shrink-0">
             <span class="close-button" id="close-settings">&times;</span>
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">Settings</h2>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">Settings</h2>
         </div>
         
         <div class="modal-body flex-grow">
             <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-2 text-gray-700">Areas of Interest</h3>
+                <h3 class="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-200">Areas of Interest</h3>
                 <div id="area-selection-container" class="relative text-gray-800">
-                    <button id="area-select-button" class="w-full p-2 border rounded-md text-left dark:border-gray-600">
+                    <button id="area-select-button" class="w-full p-2 border rounded-md text-left dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
                         <span id="area-select-summary">All areas selected</span>
                     </button>
                     <div id="area-dropdown" class="hidden absolute w-full bg-white border mt-1 rounded-md shadow-lg max-h-60 z-10 flex flex-col dark:bg-gray-800 dark:border-gray-600">
-                        <input type="text" id="area-search" placeholder="Search areas..." class="sticky top-0 w-full p-2 border-b dark:border-gray-600">
+                        <input type="text" id="area-search" placeholder="Search areas..." class="sticky top-0 w-full p-2 border-b dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
                         <div id="area-list-dropdown" class="p-2 overflow-y-auto">
                             <!-- Checkboxes will be inserted here -->
                         </div>
@@ -217,15 +279,15 @@
             </div>
 
             <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-2 text-gray-700">Alert Sounds</h3>
+                <h3 class="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-200">Alert Sounds</h3>
                 <div id="sound-settings-container" class="space-y-4 text-gray-800">
                     <!-- Sound settings will be injected here -->
                 </div>
             </div>
             
             <div>
-                 <h3 class="text-lg font-semibold mb-2 text-gray-700">Theme</h3>
-                 <div class="flex items-center justify-between text-gray-800">
+                 <h3 class="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-200">Theme</h3>
+                 <div class="flex items-center justify-between text-gray-800 dark:text-gray-200">
                     <span>Dark Mode</span>
                      <label class="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" id="theme-toggle" class="sr-only peer">
@@ -235,7 +297,7 @@
             </div>
         </div>
         <div class="mt-6 flex space-x-2 flex-shrink-0">
-            <button id="save-settings" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Save</button>
+            <button id="save-settings" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 sidebar-button">Save</button>
         </div>
     </div>
 </div>
@@ -432,7 +494,7 @@
             div.innerHTML = `
                 <label for="${threat}-sound">${label}:</label>
                 <div class="flex items-center space-x-2">
-                    <select id="${threat}-sound" class="sound-select border rounded-md p-1 bg-white" data-threat="${threat}">
+                    <select id="${threat}-sound" class="sound-select border rounded-md p-1 bg-white dark:bg-gray-700 dark:text-gray-200" data-threat="${threat}">
                         <option value="sound1">Alarm 1</option>
                         <option value="sound2">Alarm 2</option>
                         <option value="sound3">Alarm 3</option>
@@ -641,13 +703,14 @@
         alertLog.forEach((alertData, index) => {
             const threatType = alertData.threatType;
             const alertElement = document.createElement('div');
-            alertElement.className = 'p-3 bg-gray-100 rounded-md flex items-center';
+            // Applying the new class for consistent styling
+            alertElement.className = 'p-3 rounded-md flex items-center alert-list-item';
             alertElement.innerHTML = `
                 <input type="checkbox" class="history-item-checkbox mr-3 flex-shrink-0" data-index="${index}">
                 <div class="flex-grow">
                     <p class="font-semibold">${alertData.city}</p>
                     <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${alertData.title}</p>
-                    <p class="text-xs text-gray-500">${alertData.time.toLocaleString()}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${alertData.time.toLocaleString()}</p>
                 </div>
             `;
             alertList.appendChild(alertElement);
