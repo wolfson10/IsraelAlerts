@@ -117,12 +117,19 @@
             color: #fca5a5; /* red-300 */
         }
         /* Specific dark mode styles for the upload button */
+        .upload-button {
+            background-color: #e0f2f7; /* light blue-100 */
+            color: #0c4a6e; /* dark blue-800 */
+        }
+        .upload-button:hover {
+            background-color: #bae6fd; /* light blue-200 */
+        }
         .dark .upload-button {
-            background-color: #2563eb; /* blue-600 */
-            color: #ffffff; /* white */
+            background-color: #1e3a8a; /* blue-900 */
+            color: #bfdbfe; /* blue-200 */
         }
         .dark .upload-button:hover {
-            background-color: #1d4ed8; /* blue-700 */
+            background-color: #172554; /* blue-950 */
         }
     </style>
 </head>
@@ -438,7 +445,7 @@
                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 8a2 2 0 012-2h0a2 2 0 012 2v4a2 2 0 01-2 2h0a2 2 0 01-2-2V8z" clip-rule="evenodd" />
                         </svg>
                     </button>
-                    <label class="cursor-pointer text-sm px-2 py-1 rounded-md transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 upload-button">
+                    <label class="cursor-pointer text-sm px-2 py-1 rounded-md transition-colors upload-button">
                         Upload
                         <input type="file" class="hidden custom-sound-upload" accept="audio/*" data-threat="${threat}">
                     </label>
@@ -603,7 +610,11 @@
         } catch (error) {
             console.error("Error fetching alerts:", error);
             const errorElement = document.createElement('div');
-            // Applying the new class for consistent styling
+            // Clear any existing error messages before adding a new one
+            const existingError = document.querySelector('.error-message-container');
+            if (existingError) {
+                existingError.remove();
+            }
             errorElement.className = 'p-4 rounded-lg error-message-container';
             errorElement.innerHTML = `<p><strong>Error:</strong> Could not fetch alerts.</p><p class="text-sm">This may be due to network issues or API restrictions.</p></div>`;
             alertList.prepend(errorElement);
