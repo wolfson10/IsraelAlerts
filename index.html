@@ -8,7 +8,7 @@
           xintegrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
           crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-            xintegrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            xintegrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==檐
             crossorigin=""></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -270,6 +270,7 @@
 
     // Reference to the audio element for global control
     const audioPlayer = document.getElementById('alert-sound');
+    let customSoundTimeoutId = null; // Global variable for sound trimming timeout
 
     // Function to stop all playing preview sounds and reset UI
     function stopAllPreviews() {
@@ -281,6 +282,11 @@
         if (!audioPlayer.paused) {
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
+        }
+        // Clear any active trimming timeout
+        if (customSoundTimeoutId) {
+            clearTimeout(customSoundTimeoutId);
+            customSoundTimeoutId = null;
         }
     }
 
@@ -443,6 +449,10 @@
                          button.dataset.playing = 'false';
                          button.querySelector('.play-icon').classList.remove('hidden');
                          button.querySelector('.stop-icon').classList.add('hidden');
+                         if (customSoundTimeoutId) { // Clear timeout if sound ends naturally
+                             clearTimeout(customSoundTimeoutId);
+                             customSoundTimeoutId = null;
+                         }
                     };
                 }
             }
@@ -453,48 +463,27 @@
                 const file = e.target.files[0];
                 const threat = e.target.dataset.threat;
                 if (file && file.type.startsWith('audio/')) {
-                    const audio = new Audio();
-                    audio.src = URL.createObjectURL(file);
-                    audio.onloadedmetadata = () => {
-                        URL.revokeObjectURL(audio.src); // Clean up the URL object
-                        if (audio.duration > 15) { // Limit to 15 seconds
-                            const modalDiv = document.createElement('div');
-                            modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
-                            modalDiv.innerHTML = `
-                                <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-                                    <p class="text-lg font-semibold mb-4">Sound file is too long. Please select a sound 15 seconds or less.</p>
-                                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
-                                </div>
-                            `;
-                            document.body.appendChild(modalDiv);
-                            e.target.value = ''; // Clear the file input
-                        } else {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                                customSounds[threat] = event.target.result;
-                                const select = document.getElementById(`${threat}-sound`);
-                                if (!select.querySelector('option[value="custom"]')) {
-                                    const customOption = new Option('Custom', 'custom');
-                                    select.add(customOption);
-                                }
-                                select.value = 'custom';
-                            };
-                            reader.readAsDataURL(file);
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        customSounds[threat] = event.target.result;
+                        const select = document.getElementById(`${threat}-sound`);
+                        if (!select.querySelector('option[value="custom"]')) {
+                            const customOption = new Option('Custom', 'custom');
+                            select.add(customOption);
                         }
-                    };
-                    audio.onerror = () => {
-                        URL.revokeObjectURL(audio.src); // Clean up in case of error
+                        select.value = 'custom';
+                        // Inform the user that the sound has been uploaded and will be trimmed
                         const modalDiv = document.createElement('div');
                         modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
                         modalDiv.innerHTML = `
                             <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-                                <p class="text-lg font-semibold mb-4">Error loading audio file. Please try another file.</p>
+                                <p class="text-lg font-semibold mb-4">Sound uploaded successfully. Playback will be limited to 15 seconds.</p>
                                 <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
                             </div>
                         `;
                         document.body.appendChild(modalDiv);
-                        e.target.value = ''; // Clear the file input
                     };
+                    reader.readAsDataURL(file);
                 } else {
                     const modalDiv = document.createElement('div');
                     modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
@@ -702,13 +691,31 @@
     }
 
     function playSound(threatType, soundKey = null) { // Made soundKey optional
-        // If soundKey is provided (e.g., from sound preview button), use it.
-        // Otherwise, fall back to the sound configured in alertSounds for the threatType.
+        // Clear any previous trimming timeout before playing a new sound
+        if (customSoundTimeoutId) {
+            clearTimeout(customSoundTimeoutId);
+            customSoundTimeoutId = null;
+        }
+
         const effectiveSoundKey = soundKey || alertSounds[threatType];
         let soundFile;
 
         if (effectiveSoundKey === 'custom' && customSounds[threatType]) {
             soundFile = customSounds[threatType];
+            // Set a timeout to stop playback after 15 seconds for custom sounds
+            customSoundTimeoutId = setTimeout(() => {
+                if (!audioPlayer.paused) {
+                    audioPlayer.pause();
+                    audioPlayer.currentTime = 0;
+                    // Find the relevant play/stop button and reset its UI
+                    const playingButton = document.querySelector(`.play-sound-btn[data-threat="${threatType}"][data-playing="true"]`);
+                    if (playingButton) {
+                        playingButton.dataset.playing = 'false';
+                        playingButton.querySelector('.play-icon').classList.remove('hidden');
+                        playingButton.querySelector('.stop-icon').classList.add('hidden');
+                    }
+                }
+            }, 15000); // 15 seconds
         } else if (soundFiles[effectiveSoundKey]) {
             soundFile = soundFiles[effectiveSoundKey];
         } else {
