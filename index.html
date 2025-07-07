@@ -20,6 +20,7 @@
         #map {
             height: 100vh;
             width: 100%;
+            z-index: 0; /* Ensure map is behind sidebar but visible */
         }
         .leaflet-popup-content-wrapper {
             border-radius: 8px;
@@ -351,6 +352,7 @@
     const lightMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     const darkMapUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
     const map = L.map('map').setView([31.5, 34.75], 8);
+    console.log("Leaflet map initialized:", map); // Debugging map initialization
 
     const alertList = document.getElementById('alert-list');
     let activePolygons = {};
@@ -695,6 +697,7 @@
     }
 
     function populateSoundSettings() {
+        console.log("populateSoundSettings called."); // Debugging
         const container = document.getElementById('sound-settings-container');
         container.innerHTML = '';
         // Use a consistent order for threat types
@@ -702,6 +705,7 @@
 
         orderedThreatTypes.forEach(threat => {
             const labelText = threatLabels[threat]; // Get translated label
+            console.log(`Populating sound settings for ${threat}: labelText = ${labelText}`); // Debugging
             const div = document.createElement('div');
             div.className = 'flex items-center justify-between';
             div.innerHTML = `
@@ -766,7 +770,7 @@
 
         container.addEventListener('change', (e) => {
             if (e.target.classList.contains('custom-sound-upload')) {
-                console.log("Upload button clicked and file selected.");
+                console.log("Upload button change event detected."); // Debugging
                 const file = e.target.files[0];
                 const threat = e.target.dataset.threat;
 
@@ -975,7 +979,8 @@
                 <input type="checkbox" class="history-item-checkbox mr-3 flex-shrink-0" data-index="${index}">
                 <div class="flex-grow">
                     <p class="font-semibold">${alertData.city}</p>
-                    <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${threatLabels[threatType]}</p> <p class="text-xs text-gray-500 dark:text-gray-400">${alertData.time.toLocaleString(currentLanguage)}</p>
+                    <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${threatLabels[threatType]}</p> <!-- Use translated threat label -->
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${alertData.time.toLocaleString(currentLanguage)}</p>
                 </div>
             `;
             alertList.appendChild(alertElement);
@@ -1133,6 +1138,8 @@
         applyTranslations(); // Apply translations on initial load
         populateAreaSelection(); // Ensure this runs after translations for proper summary
         populateSoundSettings(); // Ensure this runs after translations for proper labels
+        map.invalidateSize(); // Force map to re-render after everything is set up
+        console.log("DOMContentLoaded: map.invalidateSize() called.");
     });
     
     // Set initial theme
