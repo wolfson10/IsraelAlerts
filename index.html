@@ -752,8 +752,8 @@
                 } else {
                     stopAllPreviews(); // Stop any other playing previews
                     button.dataset.playing = 'true';
-                    button.querySelector('.play-icon').classList.add('hidden');
-                    button.querySelector('.stop-icon').classList.remove('hidden');
+                    button.querySelector('.play-icon').classList.remove('hidden');
+                    button.querySelector('.stop-icon').classList.add('hidden');
                     playSound(threat, soundKey); // Pass soundKey directly for preview
                     audioPlayer.onended = () => {
                          button.dataset.playing = 'false';
