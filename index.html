@@ -268,6 +268,22 @@
     };
     let customSounds = {};
 
+    // Reference to the audio element for global control
+    const audioPlayer = document.getElementById('alert-sound');
+
+    // Function to stop all playing preview sounds and reset UI
+    function stopAllPreviews() {
+        document.querySelectorAll('.play-sound-btn').forEach(b => {
+            b.dataset.playing = 'false';
+            b.querySelector('.play-icon').classList.remove('hidden');
+            b.querySelector('.stop-icon').classList.add('hidden');
+        });
+        if (!audioPlayer.paused) {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+        }
+    }
+
     // --- MODAL & SIDEBAR HANDLING ---
     const settingsModal = document.getElementById('settings-modal');
     const sidebar = document.getElementById('sidebar');
@@ -285,12 +301,12 @@
     document.getElementById('settings-button').onclick = () => settingsModal.style.display = 'block';
     document.getElementById('close-settings').onclick = () => {
         settingsModal.style.display = 'none';
-        document.getElementById('alert-sound').pause(); // Stop preview sound on close
+        stopAllPreviews(); // Stop preview sound on close
     };
     window.onclick = (event) => {
         if (event.target == settingsModal) {
             settingsModal.style.display = 'none';
-            document.getElementById('alert-sound').pause(); // Stop preview sound on close
+            stopAllPreviews(); // Stop preview sound on close
         }
     };
 
@@ -414,29 +430,16 @@
                 const threat = button.dataset.threat;
                 const select = document.getElementById(`${threat}-sound`);
                 const soundKey = select.value;
-                const audio = document.getElementById('alert-sound');
                 
-                const stopAllPreviews = () => {
-                    document.querySelectorAll('.play-sound-btn').forEach(b => {
-                        b.dataset.playing = 'false';
-                        b.querySelector('.play-icon').classList.remove('hidden');
-                        b.querySelector('.stop-icon').classList.add('hidden');
-                    });
-                     if (!audio.paused) {
-                        audio.pause();
-                        audio.currentTime = 0;
-                    }
-                };
-
                 if (button.dataset.playing === 'true') {
                     stopAllPreviews();
                 } else {
-                    stopAllPreviews();
+                    stopAllPreviews(); // Stop any other playing previews
                     button.dataset.playing = 'true';
                     button.querySelector('.play-icon').classList.add('hidden');
                     button.querySelector('.stop-icon').classList.remove('hidden');
-                    playSound(threat, soundKey, true);
-                    audio.onended = () => {
+                    playSound(threat, soundKey); // Pass soundKey directly for preview
+                    audioPlayer.onended = () => {
                          button.dataset.playing = 'false';
                          button.querySelector('.play-icon').classList.remove('hidden');
                          button.querySelector('.stop-icon').classList.add('hidden');
@@ -462,7 +465,16 @@
                     };
                     reader.readAsDataURL(file);
                 } else {
-                    alert('Please select a valid audio file.');
+                    // Using a custom modal instead of alert()
+                    const modalDiv = document.createElement('div');
+                    modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
+                    modalDiv.innerHTML = `
+                        <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                            <p class="text-lg font-semibold mb-4">Please select a valid audio file.</p>
+                            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                        </div>
+                    `;
+                    document.body.appendChild(modalDiv);
                 }
             }
         });
@@ -492,6 +504,7 @@
         setTheme(newTheme);
         localStorage.setItem('theme', newTheme);
         
+        stopAllPreviews(); // Stop preview sound on save
         // Close modal
         settingsModal.style.display = 'none';
     };
@@ -504,6 +517,8 @@
         const randomThreatType = Object.keys(threatLabels)[Math.floor(Math.random() * Object.keys(threatLabels).length)];
         const testTitle = `--- TEST: ${threatLabels[randomThreatType]} ---`;
 
+        // For test alerts, we want to play the sound configured in alertSounds for the given threatType.
+        // We do NOT pass a specific soundKey here, so playSound will use alertSounds[threatType].
         handleIncomingAlerts(testCities, testTitle, true);
     };
 
@@ -541,6 +556,7 @@
             let data;
             try { data = JSON.parse(responseText); } 
             catch (e) { 
+                console.error("Error parsing JSON:", e);
                 return;
             }
 
@@ -617,7 +633,9 @@
             }
             
             if (!soundPlayed) {
-                playSound(threatType, isTest ? threatType : null);
+                // For both real and test alerts, we want to play the sound configured in alertSounds for the given threatType.
+                // The `soundKey` parameter in playSound is primarily for the settings modal's preview buttons.
+                playSound(threatType); // No second argument needed here, it will use alertSounds[threatType]
                 soundPlayed = true;
             }
 
@@ -653,19 +671,24 @@
         }
     }
 
-    function playSound(threatType, soundKey) {
-        const selectedSound = soundKey || alertSounds[threatType];
+    function playSound(threatType, soundKey = null) { // Made soundKey optional
+        // If soundKey is provided (e.g., from sound preview button), use it.
+        // Otherwise, fall back to the sound configured in alertSounds for the threatType.
+        const effectiveSoundKey = soundKey || alertSounds[threatType];
         let soundFile;
-        if (selectedSound === 'custom' && customSounds[threatType]) {
+
+        if (effectiveSoundKey === 'custom' && customSounds[threatType]) {
             soundFile = customSounds[threatType];
+        } else if (soundFiles[effectiveSoundKey]) {
+            soundFile = soundFiles[effectiveSoundKey];
         } else {
-            soundFile = soundFiles[selectedSound];
+            // Fallback to a default sound if the configured soundKey is not found or invalid
+            soundFile = soundFiles['sound1']; 
         }
         
         if (soundFile) {
-            const audio = document.getElementById('alert-sound');
-            audio.src = soundFile;
-            audio.play().catch(e => console.error("Error playing sound:", e));
+            audioPlayer.src = soundFile;
+            audioPlayer.play().catch(e => console.error("Error playing sound:", e));
         }
     }
 
@@ -679,7 +702,19 @@
         const indicesToDelete = Array.from(document.querySelectorAll('#alert-list .history-item-checkbox:checked'))
                                      .map(cb => parseInt(cb.dataset.index, 10));
 
-        if (indicesToDelete.length === 0) return;
+        if (indicesToDelete.length === 0) {
+            // Using a custom modal instead of alert()
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
+            modalDiv.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                    <p class="text-lg font-semibold mb-4">No alerts selected for deletion.</p>
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                </div>
+            `;
+            document.body.appendChild(modalDiv);
+            return;
+        }
 
         alertLog = alertLog.filter((_, index) => !indicesToDelete.includes(index));
         renderAlertList();
