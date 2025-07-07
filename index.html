@@ -107,6 +107,23 @@
             background-color: #374151;
             color: #e5e7eb;
         }
+        /* Specific dark mode styles for the error message */
+        .error-message-container {
+            background-color: #fee2e2; /* red-100 */
+            color: #b91c1c; /* red-700 */
+        }
+        .dark .error-message-container {
+            background-color: #7f1d1d; /* red-900 */
+            color: #fca5a5; /* red-300 */
+        }
+        /* Specific dark mode styles for the upload button */
+        .dark .upload-button {
+            background-color: #2563eb; /* blue-600 */
+            color: #ffffff; /* white */
+        }
+        .dark .upload-button:hover {
+            background-color: #1d4ed8; /* blue-700 */
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -421,7 +438,7 @@
                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 8a2 2 0 012-2h0a2 2 0 012 2v4a2 2 0 01-2 2h0a2 2 0 01-2-2V8z" clip-rule="evenodd" />
                         </svg>
                     </button>
-                    <label class="cursor-pointer text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md hover:bg-blue-200">
+                    <label class="cursor-pointer text-sm px-2 py-1 rounded-md transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 upload-button">
                         Upload
                         <input type="file" class="hidden custom-sound-upload" accept="audio/*" data-threat="${threat}">
                     </label>
@@ -442,8 +459,8 @@
                 } else {
                     stopAllPreviews(); // Stop any other playing previews
                     button.dataset.playing = 'true';
-                    button.querySelector('.play-icon').classList.add('hidden');
-                    button.querySelector('.stop-icon').classList.remove('hidden');
+                    button.querySelector('.play-icon').classList.remove('hidden');
+                    button.querySelector('.stop-icon').classList.add('hidden');
                     playSound(threat, soundKey); // Pass soundKey directly for preview
                     audioPlayer.onended = () => {
                          button.dataset.playing = 'false';
@@ -586,7 +603,8 @@
         } catch (error) {
             console.error("Error fetching alerts:", error);
             const errorElement = document.createElement('div');
-            errorElement.className = 'p-4 bg-red-100 rounded-lg text-red-700';
+            // Applying the new class for consistent styling
+            errorElement.className = 'p-4 rounded-lg error-message-container';
             errorElement.innerHTML = `<p><strong>Error:</strong> Could not fetch alerts.</p><p class="text-sm">This may be due to network issues or API restrictions.</p></div>`;
             alertList.prepend(errorElement);
         }
