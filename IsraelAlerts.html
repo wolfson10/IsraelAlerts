@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Israel Threat Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          xintegrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+          crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            xintegrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+            crossorigin=""></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent body scroll */
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+        /* Styles for the modals */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 2000; /* Sit on top of everything */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            margin: 5% auto; /* 5% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 10px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-body {
+            overflow-y: auto;
+        }
+        .close-button {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Dark mode styles */
+        .dark body {
+            background-color: #111827; /* gray-900 */
+            color: #e5e7eb; /* gray-200 */
+        }
+        .dark .bg-white {
+             background-color: #1f2937; /* gray-800 */
+        }
+        .dark .bg-gray-100 {
+             background-color: #4b5563; /* gray-600 */
+        }
+        .dark .text-gray-800, .dark .text-gray-700, .dark .text-gray-500, .dark .text-gray-400, .dark label, .dark span, .dark h1, .dark h2, .dark h3, .dark h4, .dark p {
+            color: #e5e7eb; /* gray-200 */
+        }
+        .dark .border-b, .dark .border-t {
+            border-color: #4b5563; /* gray-600 */
+        }
+        .dark .modal-content {
+            background-color: #374151; /* gray-700 */
+            border-color: #4b5563;
+        }
+        .dark .close-button {
+            color: #9ca3af;
+        }
+         .dark .close-button:hover {
+            color: #e5e7eb;
+        }
+        .dark .bg-gray-50 {
+            background-color: #374151; /* gray-700 */
+        }
+        .dark select, .dark input[type=text] {
+            background-color: #4b5563;
+            color: #e5e7eb;
+        }
+        .dark .leaflet-popup-content-wrapper {
+            background-color: #374151;
+            color: #e5e7eb;
+        }
+        .dark .leaflet-popup-tip {
+            background-color: #374151;
+        }
+        .dark #menu-button {
+            background-color: #374151;
+            color: #e5e7eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<div class="relative h-screen w-screen flex">
+    <!-- Sidebar -->
+    <div id="sidebar" class="absolute md:relative w-full max-w-sm md:w-1/3 lg:w-1/4 bg-white shadow-lg z-30 h-full flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div class="p-4 border-b flex-shrink-0">
+            <h1 class="text-2xl font-bold text-gray-800">Israel Real-Time Alerts</h1>
+            <p class="text-sm text-gray-500">Live threat monitoring</p>
+        </div>
+
+        <div class="p-4 border-b flex-shrink-0">
+            <button id="settings-button" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Settings</button>
+        </div>
+        
+        <div class="p-4 border-b flex-shrink-0">
+            <h3 class="font-semibold text-gray-700">Threat Legend</h3>
+            <div id="threat-legend" class="mt-2 space-y-1 text-sm">
+                <!-- Legend items will be injected here -->
+            </div>
+        </div>
+
+        <div class="p-4 border-b flex-shrink-0">
+            <button id="test-alert-button" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Test Alert</button>
+        </div>
+
+        <div class="p-4 border-b flex-shrink-0">
+            <h4 class="font-semibold mb-2 text-gray-700">List Management</h4>
+            <div class="flex space-x-2 mt-2">
+                <button id="delete-selected-alerts" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-1 px-2 rounded-lg text-sm">Delete Selected</button>
+                <button id="clear-all-alerts" class="w-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded-lg text-sm">Clear All</button>
+            </div>
+        </div>
+
+        <div id="alert-list" class="p-4 space-y-4 flex-grow overflow-y-auto">
+            <div class="text-center text-gray-500 py-8">
+                <p>No alerts yet. Waiting for data...</p>
+            </div>
+        </div>
+
+        <div class="p-4 border-t text-xs text-gray-400 flex-shrink-0">
+            Data sourced from the Home Front Command. This is not an official government service.
+        </div>
+    </div>
+
+    <!-- Main Content (Map) -->
+    <div class="flex-grow h-full">
+        <div id="map" class="h-full z-10"></div>
+    </div>
+</div>
+
+<!-- Mobile UI Elements -->
+<button id="menu-button" class="md:hidden absolute top-4 right-4 z-40 bg-white p-2 rounded-full shadow-lg flex items-center justify-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+    </svg>
+</button>
+<div id="map-overlay" class="hidden md:hidden absolute inset-0 bg-black bg-opacity-50 z-20 transition-opacity duration-300"></div>
+
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal">
+    <div class="modal-content bg-white">
+        <div class="flex-shrink-0">
+            <span class="close-button" id="close-settings">&times;</span>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Settings</h2>
+        </div>
+        
+        <div class="modal-body flex-grow">
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Areas of Interest</h3>
+                <div id="area-selection-container" class="relative text-gray-800">
+                    <button id="area-select-button" class="w-full p-2 border rounded-md text-left dark:border-gray-600">
+                        <span id="area-select-summary">All areas selected</span>
+                    </button>
+                    <div id="area-dropdown" class="hidden absolute w-full bg-white border mt-1 rounded-md shadow-lg max-h-60 z-10 flex flex-col dark:bg-gray-800 dark:border-gray-600">
+                        <input type="text" id="area-search" placeholder="Search areas..." class="sticky top-0 w-full p-2 border-b dark:border-gray-600">
+                        <div id="area-list-dropdown" class="p-2 overflow-y-auto">
+                            <!-- Checkboxes will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700">Alert Sounds</h3>
+                <div id="sound-settings-container" class="space-y-4 text-gray-800">
+                    <!-- Sound settings will be injected here -->
+                </div>
+            </div>
+            
+            <div>
+                 <h3 class="text-lg font-semibold mb-2 text-gray-700">Theme</h3>
+                 <div class="flex items-center justify-between text-gray-800">
+                    <span>Dark Mode</span>
+                     <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                 </div>
+            </div>
+        </div>
+        <div class="mt-6 flex space-x-2 flex-shrink-0">
+            <button id="save-settings" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Save</button>
+        </div>
+    </div>
+</div>
+
+<audio id="alert-sound" src=""></audio>
+
+<script>
+    // --- INITIALIZATION ---
+    let currentMapLayer = null;
+    const lightMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const darkMapUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    const map = L.map('map').setView([31.5, 34.75], 8);
+
+    const alertList = document.getElementById('alert-list');
+    let activePolygons = {};
+    let alertLog = [];
+    let selectedAreas = [];
+    let alertSounds = {
+        rockets: 'sound1',
+        earthquake: 'sound1',
+        infiltration: 'sound1',
+        aircraft_intrusion: 'sound1',
+        hazardous_materials: 'sound1',
+        tsunami: 'sound1'
+    };
+    const threatLabels = {
+        rockets: 'Rocket Fire',
+        earthquake: 'Earthquake',
+        infiltration: 'Terrorist Infiltration',
+        aircraft_intrusion: 'Hostile Aircraft Intrusion',
+        hazardous_materials: 'Hazardous Materials',
+        tsunami: 'Tsunami'
+    };
+
+    const cityData = {
+        "Acre": { lat: 32.929, lon: 35.078, time: 30, bounds: null }, "Afula": { lat: 32.612, lon: 35.293, time: 90, bounds: null }, "Arad": { lat: 31.259, lon: 35.213, time: 90, bounds: null }, "Ashdod": { lat: 31.791, lon: 34.649, time: 45, bounds: null }, "Ashkelon": { lat: 31.6693, lon: 34.5715, time: 30, bounds: [[31.69, 34.55], [31.69, 34.60], [31.64, 34.60], [31.64, 34.55]] }, "Baqa al-Gharbiyye": { lat: 32.417, lon: 35.038, time: 90, bounds: null }, "Bat Yam": { lat: 32.017, lon: 34.750, time: 90, bounds: null }, "Be'er Sheva": { lat: 31.2530, lon: 34.7915, time: 60, bounds: [[31.27, 34.77], [31.27, 34.82], [31.23, 34.82], [31.23, 34.77]] }, "Beit She'an": { lat: 32.498, lon: 35.498, time: 60, bounds: null }, "Beit Shemesh": { lat: 31.751, lon: 34.988, time: 90, bounds: null }, "Bnei Brak": { lat: 32.086, lon: 34.829, time: 90, bounds: null }, "Dimona": { lat: 31.069, lon: 35.033, time: 90, bounds: null }, "Eilat": { lat: 29.558, lon: 34.948, time: 180, bounds: null }, "El'ad": { lat: 32.051, lon: 34.952, time: 90, bounds: null }, "Givatayim": { lat: 32.072, lon: 34.811, time: 90, bounds: null }, "Hadera": { lat: 32.434, lon: 34.919, time: 90, bounds: null }, "Haifa": { lat: 32.7940, lon: 34.9896, time: 60, bounds: [[32.83, 34.97], [32.83, 35.03], [32.77, 35.03], [32.77, 34.97]] }, "Herzliya": { lat: 32.165, lon: 34.847, time: 90, bounds: null }, "Hod HaSharon": { lat: 32.153, lon: 34.891, time: 90, bounds: null }, "Holon": { lat: 32.011, lon: 34.778, time: 90, bounds: null }, "Jerusalem": { lat: 31.7683, lon: 35.2137, time: 90, bounds: [[31.80, 35.18], [31.80, 35.24], [31.74, 35.24], [31.74, 35.18]] }, "Karmiel": { lat: 32.915, lon: 35.294, time: 30, bounds: null }, "Kfar Saba": { lat: 32.174, lon: 34.908, time: 90, bounds: null }, "Kiryat Ata": { lat: 32.812, lon: 35.111, time: 60, bounds: null }, "Kiryat Bialik": { lat: 32.839, lon: 35.088, time: 60, bounds: null }, "Kiryat Gat": { lat: 31.610, lon: 34.764, time: 45, bounds: null }, "Kiryat Malakhi": { lat: 31.734, lon: 34.747, time: 45, bounds: null }, "Kiryat Motzkin": { lat: 32.836, lon: 35.077, time: 60, bounds: null }, "Kiryat Ono": { lat: 32.062, lon: 34.856, time: 90, bounds: null }, "Kiryat Shmona": { lat: 33.208, lon: 35.570, time: 10, bounds: null }, "Kiryat Yam": { lat: 32.852, lon: 35.069, time: 60, bounds: null }, "Lod": { lat: 31.950, lon: 34.891, time: 90, bounds: null }, "Ma'alot-Tarshiha": { lat: 33.016, lon: 35.275, time: 30, bounds: null }, "Migdal HaEmek": { lat: 32.673, lon: 35.241, time: 60, bounds: null }, "Modi'in-Maccabim-Re'ut": { lat: 31.904, lon: 35.008, time: 90, bounds: null }, "Nahariya": { lat: 33.007, lon: 35.093, time: 30, bounds: null }, "Nazareth": { lat: 32.702, lon: 35.298, time: 60, bounds: null }, "Nesher": { lat: 32.766, lon: 35.051, time: 60, bounds: null }, "Ness Ziona": { lat: 31.928, lon: 34.796, time: 90, bounds: null }, "Netanya": { lat: 32.321, lon: 34.857, time: 90, bounds: null }, "Netivot": { lat: 31.420, lon: 34.590, time: 30, bounds: null }, "Ofakim": { lat: 31.313, lon: 34.620, time: 45, bounds: null }, "Or Akiva": { lat: 32.511, lon: 34.922, time: 90, bounds: null }, "Or Yehuda": { lat: 32.029, lon: 34.855, time: 90, bounds: null }, "Petah Tikva": { lat: 32.088, lon: 34.887, time: 90, bounds: null }, "Qalansawe": { lat: 32.289, lon: 34.989, time: 90, bounds: null }, "Ra'anana": { lat: 32.184, lon: 34.872, time: 90, bounds: null }, "Rahat": { lat: 31.396, lon: 34.755, time: 45, bounds: null }, "Ramat Gan": { lat: 32.083, lon: 34.825, time: 90, bounds: null }, "Ramat HaSharon": { lat: 32.144, lon: 34.839, time: 90, bounds: null }, "Ramla": { lat: 31.927, lon: 34.869, time: 90, bounds: null }, "Rehovot": { lat: 31.892, lon: 34.808, time: 90, bounds: null }, "Rishon LeZion": { lat: 31.972, lon: 34.793, time: 90, bounds: null }, "Rosh HaAyin": { lat: 32.096, lon: 34.942, time: 90, bounds: null }, "Safed": { lat: 32.965, lon: 35.498, time: 30, bounds: null }, "Sakhnin": { lat: 32.860, lon: 35.297, time: 30, bounds: null }, "Sderot": { lat: 31.525, lon: 34.5942, time: 15, bounds: [[31.535, 34.58], [31.535, 34.61], [31.515, 34.61], [31.515, 34.58]] }, "Shfaram": { lat: 32.805, lon: 35.171, time: 60, bounds: null }, "Tamra": { lat: 32.853, lon: 35.201, time: 60, bounds: null }, "Tayibe": { lat: 32.266, lon: 35.009, time: 90, bounds: null }, "Tel Aviv": { lat: 32.0853, lon: 34.7818, time: 90, bounds: [[32.11, 34.76], [32.11, 34.81], [32.05, 34.81], [32.05, 34.76]] }, "Tiberias": { lat: 32.792, lon: 35.531, time: 60, bounds: null },
+        "Tira": { lat: 32.233, lon: 34.950, time: 90, bounds: null }, "Tirat Carmel": { lat: 32.763, lon: 34.969, time: 60, bounds: null }, "Umm al-Fahm": { lat: 32.518, lon: 35.153, time: 90, bounds: null }, "Yavne": { lat: 31.879, lon: 34.739, time: 90, bounds: null }, "Yehud-Monosson": { lat: 32.033, lon: 34.890, time: 90, bounds: null }, "Yokneam Illit": { lat: 32.659, lon: 35.109, time: 60, bounds: null },
+    };
+
+    const threatColors = {
+        rockets: '#cc0000',
+        earthquake: '#994400',
+        infiltration: '#ff8f00',
+        aircraft_intrusion: '#8b5eeb',
+        hazardous_materials: '#dc950e',
+        tsunami: '#0095df',
+        default: '#4a4a4a'
+    };
+
+    const soundFiles = {
+        sound1: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg',
+        sound2: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg',
+        sound3: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg'
+    };
+    let customSounds = {};
+
+    // --- MODAL & SIDEBAR HANDLING ---
+    const settingsModal = document.getElementById('settings-modal');
+    const sidebar = document.getElementById('sidebar');
+    const menuButton = document.getElementById('menu-button');
+    const mapOverlay = document.getElementById('map-overlay');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('-translate-x-full');
+        mapOverlay.classList.toggle('hidden');
+    }
+
+    menuButton.addEventListener('click', toggleSidebar);
+    mapOverlay.addEventListener('click', toggleSidebar);
+    
+    document.getElementById('settings-button').onclick = () => settingsModal.style.display = 'block';
+    document.getElementById('close-settings').onclick = () => {
+        settingsModal.style.display = 'none';
+        document.getElementById('alert-sound').pause(); // Stop preview sound on close
+    };
+    window.onclick = (event) => {
+        if (event.target == settingsModal) {
+            settingsModal.style.display = 'none';
+            document.getElementById('alert-sound').pause(); // Stop preview sound on close
+        }
+    };
+
+    // --- THEME HANDLING ---
+    const themeToggle = document.getElementById('theme-toggle');
+
+    function setTheme(theme, updateToggle = false) {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            if(updateToggle) themeToggle.checked = true;
+            if (currentMapLayer) map.removeLayer(currentMapLayer);
+            currentMapLayer = L.tileLayer(darkMapUrl, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }).addTo(map);
+        } else {
+            document.documentElement.classList.remove('dark');
+            if(updateToggle) themeToggle.checked = false;
+            if (currentMapLayer) map.removeLayer(currentMapLayer);
+            currentMapLayer = L.tileLayer(lightMapUrl, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+        }
+        setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    // --- SETTINGS & TEST ---
+    function populateAreaSelection() {
+        const sortedCities = Object.keys(cityData).sort();
+        selectedAreas = [...sortedCities]; // Select all by default
+        
+        const areaListContainer = document.getElementById('area-list-dropdown');
+        const areaSearch = document.getElementById('area-search');
+        const areaSelectButton = document.getElementById('area-select-button');
+        const areaDropdown = document.getElementById('area-dropdown');
+        const summarySpan = document.getElementById('area-select-summary');
+
+        const updateSummary = () => {
+             if (selectedAreas.length === sortedCities.length) {
+                summarySpan.textContent = 'All areas selected';
+            } else if (selectedAreas.length === 0) {
+                summarySpan.textContent = 'No areas selected';
+            } else {
+                summarySpan.textContent = `${selectedAreas.length} areas selected`;
+            }
+        };
+
+        const renderList = (filter = '') => {
+            areaListContainer.innerHTML = '';
+            sortedCities
+                .filter(city => city.toLowerCase().includes(filter.toLowerCase()))
+                .forEach(city => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center p-1';
+                    div.innerHTML = `<label class="w-full flex items-center"><input type="checkbox" class="area-checkbox mr-2" value="${city}" ${selectedAreas.includes(city) ? 'checked' : ''}> ${city}</label>`;
+                    areaListContainer.appendChild(div);
+                });
+        };
+
+        areaDropdown.addEventListener('change', (e) => {
+            if (e.target.classList.contains('area-checkbox')) {
+                const city = e.target.value;
+                if (e.target.checked) {
+                    if (!selectedAreas.includes(city)) selectedAreas.push(city);
+                } else {
+                    selectedAreas = selectedAreas.filter(c => c !== city);
+                }
+                updateSummary();
+            }
+        });
+
+        areaSearch.addEventListener('input', () => renderList(areaSearch.value));
+        
+        areaSelectButton.addEventListener('click', () => {
+            areaDropdown.classList.toggle('hidden');
+            if(!areaDropdown.classList.contains('hidden')) {
+                renderList();
+                areaSearch.focus();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('area-selection-container').contains(e.target)) {
+                areaDropdown.classList.add('hidden');
+            }
+        });
+
+        updateSummary();
+    }
+
+    function populateSoundSettings() {
+        const container = document.getElementById('sound-settings-container');
+        container.innerHTML = '';
+        Object.keys(threatLabels).forEach(threat => {
+            const label = threatLabels[threat];
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between';
+            div.innerHTML = `
+                <label for="${threat}-sound">${label}:</label>
+                <div class="flex items-center space-x-2">
+                    <select id="${threat}-sound" class="sound-select border rounded-md p-1 bg-white" data-threat="${threat}">
+                        <option value="sound1">Alarm 1</option>
+                        <option value="sound2">Alarm 2</option>
+                        <option value="sound3">Alarm 3</option>
+                    </select>
+                    <button class="play-sound-btn p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600" data-threat="${threat}" data-playing="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 play-icon" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 stop-icon hidden" viewBox="0 0 20 20" fill="currentColor">
+                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 8a2 2 0 012-2h0a2 2 0 012 2v4a2 2 0 01-2 2h0a2 2 0 01-2-2V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <label class="cursor-pointer text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-md hover:bg-blue-200">
+                        Upload
+                        <input type="file" class="hidden custom-sound-upload" accept="audio/*" data-threat="${threat}">
+                    </label>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+        container.addEventListener('click', (e) => {
+            const button = e.target.closest('.play-sound-btn');
+            if (button) {
+                const threat = button.dataset.threat;
+                const select = document.getElementById(`${threat}-sound`);
+                const soundKey = select.value;
+                const audio = document.getElementById('alert-sound');
+                
+                const stopAllPreviews = () => {
+                    document.querySelectorAll('.play-sound-btn').forEach(b => {
+                        b.dataset.playing = 'false';
+                        b.querySelector('.play-icon').classList.remove('hidden');
+                        b.querySelector('.stop-icon').classList.add('hidden');
+                    });
+                     if (!audio.paused) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                };
+
+                if (button.dataset.playing === 'true') {
+                    stopAllPreviews();
+                } else {
+                    stopAllPreviews();
+                    button.dataset.playing = 'true';
+                    button.querySelector('.play-icon').classList.add('hidden');
+                    button.querySelector('.stop-icon').classList.remove('hidden');
+                    playSound(threat, soundKey, true);
+                    audio.onended = () => {
+                         button.dataset.playing = 'false';
+                         button.querySelector('.play-icon').classList.remove('hidden');
+                         button.querySelector('.stop-icon').classList.add('hidden');
+                    };
+                }
+            }
+        });
+
+        container.addEventListener('change', (e) => {
+            if (e.target.classList.contains('custom-sound-upload')) {
+                const file = e.target.files[0];
+                const threat = e.target.dataset.threat;
+                if (file && file.type.startsWith('audio/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        customSounds[threat] = event.target.result;
+                        const select = document.getElementById(`${threat}-sound`);
+                        if (!select.querySelector('option[value="custom"]')) {
+                            const customOption = new Option('Custom', 'custom');
+                            select.add(customOption);
+                        }
+                        select.value = 'custom';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please select a valid audio file.');
+                }
+            }
+        });
+    }
+    
+    function populateLegend() {
+        const legendContainer = document.getElementById('threat-legend');
+        legendContainer.innerHTML = ''; // Clear existing legend
+        Object.keys(threatLabels).forEach(threat => {
+            const color = threatColors[threat];
+            const label = threatLabels[threat];
+            const legendItem = document.createElement('div');
+            legendItem.className = 'flex items-center';
+            legendItem.innerHTML = `<span class="w-4 h-4 mr-2 rounded" style="background-color: ${color}; border: 1px solid #ccc;"></span> ${label}`;
+            legendContainer.appendChild(legendItem);
+        });
+    }
+
+    document.getElementById('save-settings').onclick = () => {
+        // Save sounds
+        document.querySelectorAll('.sound-select').forEach(select => {
+            alertSounds[select.dataset.threat] = select.value;
+        });
+
+        // Save theme
+        const newTheme = document.getElementById('theme-toggle').checked ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Close modal
+        settingsModal.style.display = 'none';
+    };
+    
+    document.getElementById('test-alert-button').onclick = () => {
+        const allCities = Object.keys(cityData);
+        const randomCity = allCities[Math.floor(Math.random() * allCities.length)];
+        const testCities = [randomCity]; 
+
+        const randomThreatType = Object.keys(threatLabels)[Math.floor(Math.random() * Object.keys(threatLabels).length)];
+        const testTitle = `--- TEST: ${threatLabels[randomThreatType]} ---`;
+
+        handleIncomingAlerts(testCities, testTitle, true);
+    };
+
+    // --- CORE LOGIC ---
+    function getThreatType(description) {
+        const lowerDesc = description.toLowerCase();
+        // Handle test alerts first
+        if (lowerDesc.includes('test:')) {
+            for (const [key, value] of Object.entries(threatLabels)) {
+                if (lowerDesc.includes(value.toLowerCase())) return key;
+            }
+        }
+        // Handle real alerts
+        if (lowerDesc.includes('rocket') || lowerDesc.includes('missile') || lowerDesc.includes('ירי רקטות וטילים')) return 'rockets';
+        if (lowerDesc.includes('earthquake') || lowerDesc.includes('רעידת אדמה')) return 'earthquake';
+        if (lowerDesc.includes('terrorist') || lowerDesc.includes('חדירת מחבלים')) return 'infiltration';
+        if (lowerDesc.includes('aircraft') || lowerDesc.includes('כלי טיס')) return 'aircraft_intrusion';
+        if (lowerDesc.includes('hazardous') || lowerDesc.includes('חומרים מסוכנים')) return 'hazardous_materials';
+        if (lowerDesc.includes('tsunami') || lowerDesc.includes('צונאמי')) return 'tsunami';
+        return 'default';
+    }
+
+    async function fetchAlerts() {
+        try {
+            const proxyUrl = 'https://cors.bridged.cc/';
+            const apiUrl = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
+            const response = await fetch(`${proxyUrl}${apiUrl}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const responseText = await response.text();
+            if (responseText.trim() === '' || responseText.startsWith('<')) {
+                return;
+            }
+
+            let data;
+            try { data = JSON.parse(responseText); } 
+            catch (e) { 
+                return;
+            }
+
+            if (data && data.data && data.data.length > 0) {
+                const filteredAlerts = filterAlerts(data.data);
+                handleIncomingAlerts(filteredAlerts, data.title);
+            }
+        } catch (error) {
+            console.error("Error fetching alerts:", error);
+            const errorElement = document.createElement('div');
+            errorElement.className = 'p-4 bg-red-100 rounded-lg text-red-700';
+            errorElement.innerHTML = `<p><strong>Error:</strong> Could not fetch alerts.</p><p class="text-sm">This may be due to network issues or API restrictions.</p></div>`;
+            alertList.prepend(errorElement);
+        }
+    }
+
+    function filterAlerts(alerts) {
+        if (selectedAreas.length === 0) {
+            return alerts; // If no areas are selected, show all
+        }
+        return alerts.filter(alertCity => {
+            const normalizedCity = alertCity.split(' - ')[0].trim();
+            return selectedAreas.includes(normalizedCity);
+        });
+    }
+    
+    function renderAlertList() {
+        alertList.innerHTML = '';
+        if (alertLog.length === 0) {
+            alertList.innerHTML = `<div class="text-center text-gray-500 py-8"><p>No alerts yet. Waiting for data...</p></div>`;
+            return;
+        }
+
+        alertLog.forEach((alertData, index) => {
+            const threatType = alertData.threatType;
+            const alertElement = document.createElement('div');
+            alertElement.className = 'p-3 bg-gray-100 rounded-md flex items-center';
+            alertElement.innerHTML = `
+                <input type="checkbox" class="history-item-checkbox mr-3 flex-shrink-0" data-index="${index}">
+                <div class="flex-grow">
+                    <p class="font-semibold">${alertData.city}</p>
+                    <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${alertData.title}</p>
+                    <p class="text-xs text-gray-500">${alertData.time.toLocaleString()}</p>
+                </div>
+            `;
+            alertList.appendChild(alertElement);
+        });
+    }
+
+    function handleIncomingAlerts(alerts, threatTitle, isTest = false) {
+        let soundPlayed = false;
+        
+        alerts.forEach(alertCity => {
+            const normalizedCity = alertCity.split(' - ')[0].trim();
+            const threatType = getThreatType(threatTitle);
+            
+            const alertData = {
+                city: alertCity,
+                title: threatTitle,
+                time: new Date(),
+                threatType: threatType
+            };
+            alertLog.unshift(alertData);
+            if (alertLog.length > 200) alertLog.pop();
+
+            let lat, lon, bounds, shelterTime;
+            if (cityData[normalizedCity]) {
+                ({ lat, lon, bounds, time: shelterTime } = cityData[normalizedCity]);
+            } else {
+                lat = 31.0 + Math.random() * 2.0;
+                lon = 34.5 + Math.random() * 1.0;
+                bounds = null;
+                shelterTime = 90; // Default time
+            }
+            
+            if (!soundPlayed) {
+                playSound(threatType, isTest ? threatType : null);
+                soundPlayed = true;
+            }
+
+            let areaLayer;
+            const color = threatColors[threatType] || threatColors.default;
+
+            if (bounds) {
+                areaLayer = L.polygon(bounds, { color: color, weight: 3, fillColor: color, fillOpacity: 0.3 });
+            } else {
+                areaLayer = L.circle([lat, lon], { radius: 2500, color: color, weight: 2, fillColor: color, fillOpacity: 0.3 });
+            }
+            areaLayer.addTo(map).bindPopup(`<b>${alertCity}</b><br>${threatTitle}`);
+            
+            const polygonId = `${normalizedCity}-${Date.now()}`;
+            activePolygons[polygonId] = areaLayer;
+
+            setTimeout(() => {
+                if (map.hasLayer(areaLayer)) map.removeLayer(areaLayer);
+                delete activePolygons[polygonId];
+                
+                if (Object.keys(activePolygons).length === 0) {
+                    map.setView([31.5, 34.75], 8);
+                }
+            }, shelterTime * 1000);
+        });
+        
+        renderAlertList();
+        
+        const allActiveLayers = Object.values(activePolygons);
+        if (allActiveLayers.length > 0) {
+            const group = new L.featureGroup(allActiveLayers);
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
+        }
+    }
+
+    function playSound(threatType, soundKey) {
+        const selectedSound = soundKey || alertSounds[threatType];
+        let soundFile;
+        if (selectedSound === 'custom' && customSounds[threatType]) {
+            soundFile = customSounds[threatType];
+        } else {
+            soundFile = soundFiles[selectedSound];
+        }
+        
+        if (soundFile) {
+            const audio = document.getElementById('alert-sound');
+            audio.src = soundFile;
+            audio.play().catch(e => console.error("Error playing sound:", e));
+        }
+    }
+
+    // --- HISTORY FUNCTIONS ---
+    document.getElementById('clear-all-alerts').addEventListener('click', () => {
+        alertLog = [];
+        renderAlertList();
+    });
+
+    document.getElementById('delete-selected-alerts').addEventListener('click', () => {
+        const indicesToDelete = Array.from(document.querySelectorAll('#alert-list .history-item-checkbox:checked'))
+                                     .map(cb => parseInt(cb.dataset.index, 10));
+
+        if (indicesToDelete.length === 0) return;
+
+        alertLog = alertLog.filter((_, index) => !indicesToDelete.includes(index));
+        renderAlertList();
+    });
+
+
+    // --- STARTUP ---
+    populateAreaSelection();
+    populateLegend();
+    populateSoundSettings();
+    
+    // Set initial theme
+    const preferredTheme = localStorage.getItem('theme') || 'light';
+    setTheme(preferredTheme, true); // Update the toggle to match
+
+    fetchAlerts();
+    setInterval(fetchAlerts, 15000);
+
+</script>
+
+</body>
+</html>
