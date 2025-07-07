@@ -8,7 +8,7 @@
           xintegrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
           crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-            xintegrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==檐
+            xintegrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
             crossorigin=""></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -134,14 +134,43 @@
 
         /* New: Sidebar specific styles */
         #sidebar {
-            background-color: #fbfdff; /* Very light blue/white for light mode */
+            background-color: #f8fafc; /* A very light gray-50 for light mode */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
-            border-right: 1px solid #e5e7eb; /* subtle border */
+            border-right: 1px solid #e2e8f0; /* subtle gray-200 border */
+            /* Light mode background image */
+            background-image: url("https://wallpapersok.com/images/thumbnail/japanese-anime-city-theme-background-6nu23nc8hsb7idk5.jpg");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative; /* Needed for pseudo-element overlay */
+            overflow: hidden; /* Ensures image doesn't bleed outside */
         }
         .dark #sidebar {
-            background-color: #1a202c; /* Dark blue-gray for dark mode */
+            background-color: #283141; /* Darker blue-gray for dark mode as base */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); /* darker shadow */
-            border-right: 1px solid #374151; /* darker subtle border */
+            border-right: 1px solid #4a5568; /* darker subtle border */
+            /* Dark mode image background */
+            background-image: url("https://images.steamusercontent.com/ugc/1653349153247030929/9AB721132ECFE6E95BB40BD203A5F462BC4A481C/?imw=512&&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative; /* Needed for pseudo-element overlay */
+            overflow: hidden; /* Ensures image doesn't bleed outside */
+        }
+
+        /* Overlay for sidebar background images */
+        #sidebar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.3); /* Light overlay for bright mode */
+            z-index: -1; /* Place behind content */
+        }
+        .dark #sidebar::before {
+            background-color: rgba(0, 0, 0, 0.5); /* Darker overlay for dark mode */
         }
 
         .sidebar-header {
@@ -149,6 +178,9 @@
             color: white;
             padding: 1.5rem; /* More padding */
             border-bottom: none; /* Remove default border */
+            border-radius: 0.5rem 0.5rem 0 0; /* Rounded top corners */
+            position: relative; /* Ensure it's above the overlay */
+            z-index: 1;
         }
         .dark .sidebar-header {
             background-image: linear-gradient(to right, #1e3a8a, #1d4ed8); /* blue-900 to blue-800 */
@@ -157,9 +189,11 @@
         .sidebar-section {
             border-color: #e5e7eb; /* gray-200 */
             padding: 1rem;
+            position: relative; /* Ensure content is above the overlay */
+            z-index: 1;
         }
         .dark .sidebar-section {
-            border-color: #374151; /* gray-700 */
+            border-color: #4a5568; /* darker gray for dark mode */
         }
 
         .sidebar-button {
@@ -167,6 +201,8 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
             border-radius: 0.5rem; /* rounded-lg */
             font-weight: 600; /* semi-bold */
+            position: relative; /* Ensure button is above overlay */
+            z-index: 1;
         }
         .sidebar-button:hover {
             transform: translateY(-2px);
@@ -183,6 +219,8 @@
             background-color: #f3f4f6; /* gray-100 */
             border-radius: 0.5rem; /* rounded-md */
             transition: background-color 0.2s ease-in-out;
+            position: relative; /* Ensure item is above overlay */
+            z-index: 1;
         }
         .alert-list-item:hover {
             background-color: #e5e7eb; /* gray-200 */
@@ -191,7 +229,7 @@
             background-color: #374151; /* gray-700 */
         }
         .dark .alert-list-item:hover {
-            background-color: #4b5563; /* gray-600 */
+            background-color: #4a5568; /* darker gray for dark mode */
         }
     </style>
 </head>
@@ -706,7 +744,7 @@
             // Applying the new class for consistent styling
             alertElement.className = 'p-3 rounded-md flex items-center alert-list-item';
             alertElement.innerHTML = `
-                <input type="checkbox" class="history-item-checkbox mr-3 flex-shrink-0" data-index="${index}">
+                <input type="checkbox" class="history-item-checkbox mr-3 flex-shrink-0">
                 <div class="flex-grow">
                     <p class="font-semibold">${alertData.city}</p>
                     <p class="text-sm" style="color: ${threatColors[threatType] || threatColors.default};">${alertData.title}</p>
