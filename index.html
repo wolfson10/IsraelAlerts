@@ -348,6 +348,15 @@
 <script>
     // --- INITIALIZATION ---
     console.log("Script starting..."); // Added for debugging
+    // Explicitly set Leaflet default icon paths to prevent issues with CDN loading
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+    });
+    console.log("Leaflet default icon paths set."); // Debugging
+
     let currentMapLayer = null;
     const lightMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     const darkMapUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
