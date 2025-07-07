@@ -453,19 +453,49 @@
                 const file = e.target.files[0];
                 const threat = e.target.dataset.threat;
                 if (file && file.type.startsWith('audio/')) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        customSounds[threat] = event.target.result;
-                        const select = document.getElementById(`${threat}-sound`);
-                        if (!select.querySelector('option[value="custom"]')) {
-                            const customOption = new Option('Custom', 'custom');
-                            select.add(customOption);
+                    const audio = new Audio();
+                    audio.src = URL.createObjectURL(file);
+                    audio.onloadedmetadata = () => {
+                        URL.revokeObjectURL(audio.src); // Clean up the URL object
+                        if (audio.duration > 15) { // Limit to 15 seconds
+                            const modalDiv = document.createElement('div');
+                            modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
+                            modalDiv.innerHTML = `
+                                <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                                    <p class="text-lg font-semibold mb-4">Sound file is too long. Please select a sound 15 seconds or less.</p>
+                                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                                </div>
+                            `;
+                            document.body.appendChild(modalDiv);
+                            e.target.value = ''; // Clear the file input
+                        } else {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                customSounds[threat] = event.target.result;
+                                const select = document.getElementById(`${threat}-sound`);
+                                if (!select.querySelector('option[value="custom"]')) {
+                                    const customOption = new Option('Custom', 'custom');
+                                    select.add(customOption);
+                                }
+                                select.value = 'custom';
+                            };
+                            reader.readAsDataURL(file);
                         }
-                        select.value = 'custom';
                     };
-                    reader.readAsDataURL(file);
+                    audio.onerror = () => {
+                        URL.revokeObjectURL(audio.src); // Clean up in case of error
+                        const modalDiv = document.createElement('div');
+                        modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
+                        modalDiv.innerHTML = `
+                            <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                                <p class="text-lg font-semibold mb-4">Error loading audio file. Please try another file.</p>
+                                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                            </div>
+                        `;
+                        document.body.appendChild(modalDiv);
+                        e.target.value = ''; // Clear the file input
+                    };
                 } else {
-                    // Using a custom modal instead of alert()
                     const modalDiv = document.createElement('div');
                     modalDiv.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[2001] flex justify-center items-center';
                     modalDiv.innerHTML = `
